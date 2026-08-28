@@ -72,6 +72,7 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
   window.currentFilter = "전체";
   let selectedYear = new Date().getFullYear();
   let selectedMonth = new Date().getMonth();
+  let selectedDate = new Date().toISOString().slice(0, 10); // 선택된 날짜 관리
 
   const today = () => new Date().toISOString().slice(0, 10),
         fmt = x => x.replaceAll("-", "."),
@@ -123,6 +124,11 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
     renderCalendar();
   }
 
+  window.selectCalendarDate = function(dStr) {
+    selectedDate = dStr;
+    render();
+  }
+
   function initMonthSelect() {
     const select = document.getElementById("calMonthSelect");
     let options = '';
@@ -159,7 +165,10 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
         }
       }
 
-      const dayHtml = `<div class="cal-day ${isCompleted ? 'completed' : ''}">${day}</div>`;
+      const isSelected = (dStr === selectedDate);
+      const selectedStyle = isSelected ? 'border: 2px solid #222; font-weight: bold;' : '';
+      const dayHtml = `<div class="cal-day ${isCompleted ? 'completed' : ''}" style="${selectedStyle} cursor: pointer;" onclick="selectCalendarDate('${dStr}')">${day}</div>`;
+      
       if (day <= 15) { row1 += dayHtml; } else { row2 += dayHtml; }
     }
 
@@ -171,14 +180,15 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
     const now = new Date();
     const formatter = new Intl.DateTimeFormat("ko-KR", { year: 'numeric', month: 'long', day: 'numeric' });
     const weekdayFormatter = new Intl.DateTimeFormat("ko-KR", { weekday: 'short' });
-    document.getElementById("today").textContent = `${formatter.format(now)} (${weekdayFormatter.format(now)})`;
+    
+    document.getElementById("today").textContent = `${formatter.format(now)} (${weekdayFormatter.format(now)}) — 조회: ${fmt(selectedDate)}`;
     
     renderCalendar();
 
     let active = items.filter(x => !x.responded),
-        done = active.filter(x => x.logs && x.logs[today()] && today() >= x.createdAt).length;
+        done = active.filter(x => x.logs && x.logs[selectedDate] && selectedDate >= x.createdAt).length;
     
-    document.getElementById("summary").innerHTML = `오늘 ${done}/${active.length}개 기도 · 기도응답 ${items.filter(x => x.responded).length}건`;
+    document.getElementById("summary").innerHTML = `${fmt(selectedDate)} 기준 (${done}/${active.length}개 완료) · 기도응답 ${items.filter(x => x.responded).length}건`;
     
     let allButtonsHtml = `
       <button class="btn primary" onclick="openForm()">추가</button>
@@ -189,7 +199,7 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
     
     let a = active.filter(x => window.currentFilter === "전체" || x.category === window.currentFilter);
     document.getElementById("list").innerHTML = a.length ? a.map(x => {
-      let d = x.logs && x.logs[today()] && today() >= x.createdAt, 
+      let d = x.logs && x.logs[selectedDate] && selectedDate >= x.createdAt, 
           n = getValidPrayerCount(x);
       return `<div class="card ${d ? "done" : ""}">
         <div class="meta"><span>${esc(x.category)}</span><span>작성 ${fmt(x.createdAt)} · ${days(x.createdAt)}일째</span></div>
@@ -197,7 +207,7 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
         <div class="muted">실제 기도 ${n}일</div>
         <div class="actions">
           <button class="btn" onclick="editPrayer('${x.id}')">수정</button>
-          <button class="btn" onclick="toggle('${x.id}')">${d ? "✓ 오늘 기도함" : "□ 기도하기"}</button>
+          <button class="btn" onclick="toggle('${x.id}')">${d ? "✓ 기도함" : "□ 기도하기"}</button>
           <button class="btn" onclick="respond('${x.id}')">응답됨</button>
         </div>
       </div>`;
@@ -250,10 +260,10 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
   window.toggle = async function(id) {
     let x = items.find(x => x.id === id);
     x.logs = x.logs || {};
-    if (today() < x.createdAt) {
+    if (selectedDate < x.createdAt) {
       return alert("작성일 이전에는 기도 체크를 할 수 없습니다.");
     }
-    x.logs[today()] = !x.logs[today()];
+    x.logs[selectedDate] = !x.logs[selectedDate];
     await save(); render();
   }
 
@@ -333,7 +343,6 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
     const loginScreen = document.getElementById("loginScreen");
 
     if (user) {
-      // 로그인된 경우
       loginScreen.style.display = "none";
       mainApp.style.display = "block";
 
@@ -350,7 +359,6 @@ textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font:in
       initMonthSelect();
       render();
     } else {
-      // 로그인되지 않은 경우
       mainApp.style.display = "none";
       loginScreen.style.display = "flex";
     }
