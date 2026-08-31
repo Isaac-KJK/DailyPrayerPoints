@@ -119,7 +119,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
 #loginScreen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:20px;text-align:center;}
 </style>
 
-<!-- Firebase SDK CDN (v10 방식) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -171,18 +170,18 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
 
   function getTreeStageInfo(x) {
     if (x.responded) {
-      return { emoji: "🍎", name: "응답의 열매", desc: "기도가 응답되어 열매가 맺혔어요!" };
+      return { emoji: "🍎", name: "응답의 열매" };
     }
     const d = days(x.createdAt);
-    if (d <= 3) return { emoji: "🌰", name: "씨앗", desc: "땅속에서 조용히 싹을 준비하는 중" };
-    if (d <= 7) return { emoji: "🌱", name: "아기 새싹", desc: "연두색 고개를 살짝 내민 새싹" };
-    if (d <= 14) return { emoji: "🌿", name: "어린 잎", desc: "줄기가 튼튼해지는 중" };
-    if (d <= 30) return { emoji: "🪴", name: "작은 묘목", desc: "제법 모양을 갖춘 묘목" };
-    if (d <= 60) return { emoji: "🌲", name: "푸른 나무", desc: "가지가 푸르게 뻗어가는 나무" };
-    if (d <= 90) return { emoji: "🌳", name: "성숙한 나무", desc: "든든하게 뿌리내린 나무" };
-    if (d <= 180) return { emoji: "🪵", name: "거목", desc: "굵은 나이테가 생긴 든든한 거목" };
-    if (d <= 365) return { emoji: "🌳", name: "참나무", desc: "사계절을 견뎌낸 우람한 나무" };
-    return { emoji: "👑", name: "수호목", desc: "1년 이상 깊은 역사가 담긴 동산의 수호목" };
+    if (d <= 3) return { emoji: "🌰", name: "씨앗" };
+    if (d <= 7) return { emoji: "🌱", name: "아기 새싹" };
+    if (d <= 14) return { emoji: "🌿", name: "어린 잎" };
+    if (d <= 30) return { emoji: "🪴", name: "작은 묘목" };
+    if (d <= 60) return { emoji: "🌲", name: "푸른 나무" };
+    if (d <= 90) return { emoji: "🌳", name: "성숙한 나무" };
+    if (d <= 180) return { emoji: "🪵", name: "거목" };
+    if (d <= 365) return { emoji: "🌳", name: "참나무" };
+    return { emoji: "👑", name: "수호목" };
   }
 
   window.loginWithGoogle = async function() {
@@ -298,7 +297,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
           <span class="forest-badge"><span class="animated-tree">${stage.emoji}</span> ${stage.name} (${days(x.createdAt)}일째)</span>
         </div>
         <div class="title">${esc(x.title)}</div>
-        <div class="muted">실제 기도 ${n}일 · ${stage.desc}</div>
+        <div class="muted">실제 기도 ${n}일</div>
         <div class="actions" style="margin-top:12px;">
           <button class="btn" style="flex:1;" onclick="editPrayer('${x.id}')">수정</button>
           <div class="btn-wrapper" id="wrap-${x.id}">
@@ -518,7 +517,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
 </script>
 </head>
 <body>
-<!-- 로그인 화면 -->
 <div id="loginScreen">
   <div class="box" style="max-width:360px;">
     <h2>나의 기도동산 🌿</h2>
@@ -527,7 +525,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   </div>
 </div>
 
-<!-- 메인 앱 화면 -->
 <div id="mainApp" class="app" style="display:none;">
   <header>
     <div>
@@ -550,7 +547,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   </main>
 </div>
 
-<!-- 기본 모달 팝업 (기도 추가/수정) -->
 <div id="modal" class="modal">
   <div class="box">
     <h2 id="formTitle" style="color:#4B6E48; margin-top:0;">기도제목 추가</h2>
@@ -570,7 +566,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   </div>
 </div>
 
-<!-- 감사 기록 전용 모달 팝업 -->
 <div id="thanksModal" class="modal">
   <div class="box">
     <h2 style="color:#4B6E48; margin-top:0;">응답 열매 감사 기록</h2>
