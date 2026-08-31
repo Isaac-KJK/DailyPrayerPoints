@@ -25,47 +25,51 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
   transform-origin: bottom center;
 }
 
-/* 아멘 & 꽃가루 폭죽 애니메이션 스타일 (속도 조정: 1.4초 / 1.5초) */
-.btn-wrapper {
+/* 아멘 & 꽃가루 폭죽 애니메이션 스타일 (카드 기준 절대 좌표 및 여유로운 속도) */
+.card {
   position: relative;
-  display: inline-block;
-  flex: 1; /* 버튼 영역 균등 분할을 위해 추가 */
+  border: 1px solid #E5E3E2;
+  border-radius: 14px;
+  padding: 16px;
+  margin: 10px 0;
+  background: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  overflow: visible !important;
 }
+
 @keyframes popUpAmen {
-  0% { transform: translateY(0) scale(0.6); opacity: 0; }
-  20% { transform: translateY(-25px) scale(1.15); opacity: 1; }
-  80% { transform: translateY(-45px) scale(1); opacity: 1; }
-  100% { transform: translateY(-55px) scale(0.9); opacity: 0; }
+  0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+  25% { transform: translate(-50%, -35px) scale(1.2); opacity: 1; }
+  75% { transform: translate(-50%, -55px) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -75px) scale(0.9); opacity: 0; }
 }
+
 @keyframes popUpConfetti {
-  0% { transform: translate(0, 0) scale(0.8) rotate(0deg); opacity: 1; }
-  80% { transform: translate(var(--tx), var(--ty)) scale(0.5) rotate(360deg); opacity: 1; }
-  100% { transform: translate(var(--tx), calc(var(--ty) + 10px)) scale(0.3) rotate(420deg); opacity: 0; }
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  75% { transform: translate(var(--tx), var(--ty)) scale(0.6) rotate(360deg); opacity: 1; }
+  100% { transform: translate(var(--tx), calc(var(--ty) + 15px)) scale(0.3) rotate(540deg); opacity: 0; }
 }
+
 .popup-amen {
   position: absolute;
-  top: -15px;
-  left: 50%;
-  transform: translateX(-50%);
   font-weight: bold;
-  font-size: 14px;
+  font-size: 16px;
   color: #4B6E48;
   pointer-events: none;
-  animation: popUpAmen 1.4s ease-out forwards;
+  animation: popUpAmen 1.8s ease-out forwards;
   white-space: nowrap;
-  z-index: 10;
-  text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+  z-index: 100;
+  text-shadow: 0 1px 4px rgba(255,255,255,0.9);
 }
+
 .confetti-particle {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   pointer-events: none;
-  animation: popUpConfetti 1.5s ease-out forwards;
-  z-index: 9;
+  animation: popUpConfetti 1.8s ease-out forwards;
+  z-index: 99;
 }
 
 /* 1줄 고정 균등 분할 버튼바 */
@@ -75,10 +79,10 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
 .primary{background:#4B6E48;color:#fff;border-color:#3A5638;}
 .primary:hover{background:#3A5638;}
 
-.card{border:1px solid #E5E3E2;border-radius:14px;padding:16px;margin:10px 0;background:#FFFFFF;box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
 .meta{display:flex;justify-content:space-between;color:#898989;font-size:13px}
 .title{font-size:17px;margin:12px 0;color:#333333;}
 .actions{text-align:right;display:flex;justify-content:space-between;gap:6px;width:100%;}
+.btn-wrapper{display:flex;flex:1;}
 .done{background:#F9F8F7;opacity:.85;border-color:#D5D1CE;}
 .modal{display:none;position:fixed;inset:0;background:#0005;align-items:center;justify-content:center;padding:15px;z-index:100;}
 .box{background:#fff;border-radius:15px;padding:20px;width:min(480px,100%);box-shadow: 0 10px 30px rgba(0,0,0,0.1);}
@@ -288,7 +292,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       let d = x.logs && x.logs[selectedDate] && selectedDate >= x.createdAt, 
           n = getValidPrayerCount(x),
           stage = getTreeStageInfo(x);
-      return `<div class="card ${d ? "done" : ""}">
+      return `<div class="card ${d ? "done" : ""}" id="card-${x.id}">
         <div class="meta"><span>${esc(x.category)}</span><span>작성 ${fmt(x.createdAt)} · ${days(x.createdAt)}일째</span></div>
         <div style="margin-top:10px;">
           <span class="forest-badge"><span class="animated-tree">${stage.emoji}</span> ${stage.name} (${days(x.createdAt)}일째)</span>
@@ -296,11 +300,11 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
         <div class="title">${esc(x.title)}</div>
         <div class="muted">실제 기도 ${n}일 · ${stage.desc}</div>
         <div class="actions" style="margin-top:12px;">
-          <button class="btn" onclick="editPrayer('${x.id}')">수정</button>
+          <button class="btn" style="flex:1;" onclick="editPrayer('${x.id}')">수정</button>
           <div class="btn-wrapper" id="wrap-${x.id}">
-            <button class="btn" style="width:100%;" onclick="toggle('${x.id}', event)">${d ? "✓ 기도함" : "□ 기도하기"}</button>
+            <button class="btn" style="width:100%;" id="btn-${x.id}" onclick="toggle('${x.id}', event)">${d ? "✓ 기도함" : "□ 기도하기"}</button>
           </div>
-          <button class="btn" onclick="respond('${x.id}')">응답됨</button>
+          <button class="btn" style="flex:1;" onclick="respond('${x.id}')">응답됨</button>
         </div>
       </div>`;
     }).join("") : '<div class="empty">기도동산에 심어진 나무가 없어요. 기도제목을 추가해 보세요! 🌱</div>';
@@ -349,32 +353,42 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 기도 완료 버튼 클릭 시 애니메이션 효과 실행 함수 (속도 조절 및 여유로운 타이밍)
-  function triggerAmenAnimation(wrapperEl) {
+  // 기도 완료 버튼 클릭 시 애니메이션 효과 실행 함수 (카드 기준 영역에서 충분히 눈에 띄게 표시)
+  function triggerAmenAnimation(cardEl, btnEl) {
+    const cardRect = cardEl.getBoundingClientRect();
+    const btnRect = btnEl.getBoundingClientRect();
+    
+    const centerX = (btnRect.left + btnRect.right) / 2 - cardRect.left;
+    const centerY = btnRect.top - cardRect.top;
+
     // 아멘 텍스트 생성
     const amenEl = document.createElement("div");
     amenEl.className = "popup-amen";
+    amenEl.style.left = `${centerX}px`;
+    amenEl.style.top = `${centerY}px`;
     amenEl.textContent = "🙏 아멘!";
-    wrapperEl.appendChild(amenEl);
-    setTimeout(() => amenEl.remove(), 1400);
+    cardEl.appendChild(amenEl);
+    setTimeout(() => amenEl.remove(), 1800);
 
-    // 색색의 꽃가루(파티클) 여러 개 생성
-    const colors = ["#4B6E48", "#B2AC88", "#E3A857", "#D98880", "#85C1E9"];
-    for (let i = 0; i < 14; i++) {
+    // 색색의 꽃가루(파티클) 생성
+    const colors = ["#4B6E48", "#B2AC88", "#E3A857", "#D98880", "#85C1E9", "#F39C12", "#E74C3C"];
+    for (let i = 0; i < 18; i++) {
       const p = document.createElement("div");
       p.className = "confetti-particle";
       p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      p.style.left = `${centerX}px`;
+      p.style.top = `${centerY}px`;
       
       const angle = Math.random() * Math.PI * 2;
-      const distance = 30 + Math.random() * 35;
+      const distance = 40 + Math.random() * 55;
       const tx = Math.cos(angle) * distance + "px";
-      const ty = Math.sin(angle) * distance - 20 + "px";
+      const ty = Math.sin(angle) * distance - 30 + "px";
       
       p.style.setProperty("--tx", tx);
       p.style.setProperty("--ty", ty);
       
-      wrapperEl.appendChild(p);
-      setTimeout(() => p.remove(), 1500);
+      cardEl.appendChild(p);
+      setTimeout(() => p.remove(), 1800);
     }
   }
 
@@ -388,11 +402,11 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     const wasCompleted = !!x.logs[selectedDate];
     x.logs[selectedDate] = !wasCompleted;
 
-    // 미체크 상태에서 '기도함' 체크 상태로 바뀔 때만 아멘 애니메이션 실행
     if (!wasCompleted && x.logs[selectedDate]) {
-      const wrapper = document.getElementById(`wrap-${id}`);
-      if (wrapper) {
-        triggerAmenAnimation(wrapper);
+      const cardEl = document.getElementById(`card-${id}`);
+      const btnEl = document.getElementById(`btn-${id}`);
+      if (cardEl && btnEl) {
+        triggerAmenAnimation(cardEl, btnEl);
       }
     }
 
