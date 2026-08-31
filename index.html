@@ -13,7 +13,7 @@ main{padding:18px}
 h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
 .muted{color:#898989;font-size:13px}
 
-/* 애니메이션 효과 정의 (기도함 버튼 제외) */
+/* 애니메이션 효과 정의 */
 @keyframes breeze {
   0%, 100% { transform: rotate(0deg); }
   25% { transform: rotate(-6deg); }
@@ -23,6 +23,46 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
   display: inline-block;
   animation: breeze 3s ease-in-out infinite;
   transform-origin: bottom center;
+}
+
+/* 아멘 & 꽃가루 폭죽 애니메이션 스타일 */
+.btn-wrapper {
+  position: relative;
+  display: inline-block;
+}
+@keyframes popUpAmen {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  30% { transform: translateY(-22px) scale(1.1); opacity: 1; }
+  100% { transform: translateY(-45px) scale(1); opacity: 0; }
+}
+@keyframes popUpConfetti {
+  0% { transform: translate(0, 0) scale(0.8) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.4) rotate(360deg); opacity: 0; }
+}
+.popup-amen {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: bold;
+  font-size: 14px;
+  color: #4B6E48;
+  pointer-events: none;
+  animation: popUpAmen 0.8s ease-out forwards;
+  white-space: nowrap;
+  z-index: 10;
+  text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+}
+.confetti-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: popUpConfetti 0.7s ease-out forwards;
+  z-index: 9;
 }
 
 /* 1줄 고정 균등 분할 버튼바 */
@@ -122,7 +162,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     return Object.entries(x.logs).filter(([date, status]) => status && date >= x.createdAt).length;
   }
 
-  // 세분화된 기도동산 성장 단계 계산 함수
   function getTreeStageInfo(x) {
     if (x.responded) {
       return { emoji: "🍎", name: "응답의 열매", desc: "기도가 응답되어 열매가 맺혔어요!" };
@@ -255,7 +294,9 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
         <div class="muted">실제 기도 ${n}일 · ${stage.desc}</div>
         <div class="actions" style="margin-top:12px;">
           <button class="btn" onclick="editPrayer('${x.id}')">수정</button>
-          <button class="btn" onclick="toggle('${x.id}')">${d ? "✓ 기도함" : "□ 기도하기"}</button>
+          <div class="btn-wrapper" id="wrap-${x.id}">
+            <button class="btn" onclick="toggle('${x.id}', event)">${d ? "✓ 기도함" : "□ 기도하기"}</button>
+          </div>
           <button class="btn" onclick="respond('${x.id}')">응답됨</button>
         </div>
       </div>`;
@@ -305,14 +346,56 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  window.toggle = async function(id) {
+  // 기도 완료 버튼 클릭 시 애니메이션 효과 실행 함수
+  function triggerAmenAnimation(wrapperEl) {
+    // 아멘 텍스트 생성
+    const amenEl = document.createElement("div");
+    amenEl.className = "popup-amen";
+    amenEl.textContent = "🙏 아멘!";
+    wrapperEl.appendChild(amenEl);
+    setTimeout(() => amenEl.remove(), 800);
+
+    // 색색의 꽃가루(파티클) 여러 개 생성
+    const colors = ["#4B6E48", "#B2AC88", "#E3A857", "#D98880", "#85C1E9"];
+    for (let i = 0; i < 12; i++) {
+      const p = document.createElement("div");
+      p.className = "confetti-particle";
+      p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      
+      // 사방으로 퍼져나갈 랜덤 좌표 설정 (-45px ~ 45px)
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 25 + Math.random() * 30;
+      const tx = Math.cos(angle) * distance + "px";
+      const ty = Math.sin(angle) * distance - 15 + "px";
+      
+      p.style.setProperty("--tx", tx);
+      p.style.setProperty("--ty", ty);
+      
+      wrapperEl.appendChild(p);
+      setTimeout(() => p.remove(), 700);
+    }
+  }
+
+  window.toggle = async function(id, event) {
     let x = items.find(x => x.id === id);
     x.logs = x.logs || {};
     if (selectedDate < x.createdAt) {
       return alert("작성일 이전에는 기도 체크를 할 수 없습니다.");
     }
-    x.logs[selectedDate] = !x.logs[selectedDate];
-    await save(); render();
+    
+    const wasCompleted = !!x.logs[selectedDate];
+    x.logs[selectedDate] = !wasCompleted;
+
+    // 미체크 상태에서 '기도함' 체크 상태로 바뀔 때만 아멘 애니메이션 실행
+    if (!wasCompleted && x.logs[selectedDate]) {
+      const wrapper = document.getElementById(`wrap-${id}`);
+      if (wrapper) {
+        triggerAmenAnimation(wrapper);
+      }
+    }
+
+    await save(); 
+    render();
   }
 
   window.respond = async function(id) {
