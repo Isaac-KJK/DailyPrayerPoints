@@ -392,7 +392,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  window.toggle = async function(id, event) {
+ window.toggle = async function(id, event) {
     let x = items.find(x => x.id === id);
     x.logs = x.logs || {};
     if (selectedDate < x.createdAt) {
@@ -402,6 +402,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     const wasCompleted = !!x.logs[selectedDate];
     x.logs[selectedDate] = !wasCompleted;
 
+    // 미체크 상태에서 체크 상태로 바뀔 때 애니메이션 실행
     if (!wasCompleted && x.logs[selectedDate]) {
       const cardEl = document.getElementById(`card-${id}`);
       const btnEl = document.getElementById(`btn-${id}`);
@@ -410,8 +411,12 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       }
     }
 
+    // 데이터는 즉시 백그라운드 저장하되, 
+    // 화면 전체 리렌더링은 애니메이션이 충분히 보일 수 있도록 0.5초 뒤에 실행
     await save(); 
-    render();
+    setTimeout(() => {
+      render();
+    }, 500);
   }
 
   window.respond = async function(id) {
