@@ -25,33 +25,36 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
   transform-origin: bottom center;
 }
 
-/* 아멘 & 꽃가루 폭죽 애니메이션 스타일 */
+/* 아멘 & 꽃가루 폭죽 애니메이션 스타일 (속도 조정: 1.4초 / 1.5초) */
 .btn-wrapper {
   position: relative;
   display: inline-block;
+  flex: 1; /* 버튼 영역 균등 분할을 위해 추가 */
 }
 @keyframes popUpAmen {
   0% { transform: translateY(0) scale(0.6); opacity: 0; }
-  30% { transform: translateY(-22px) scale(1.1); opacity: 1; }
-  100% { transform: translateY(-45px) scale(1); opacity: 0; }
+  20% { transform: translateY(-25px) scale(1.15); opacity: 1; }
+  80% { transform: translateY(-45px) scale(1); opacity: 1; }
+  100% { transform: translateY(-55px) scale(0.9); opacity: 0; }
 }
 @keyframes popUpConfetti {
   0% { transform: translate(0, 0) scale(0.8) rotate(0deg); opacity: 1; }
-  100% { transform: translate(var(--tx), var(--ty)) scale(0.4) rotate(360deg); opacity: 0; }
+  80% { transform: translate(var(--tx), var(--ty)) scale(0.5) rotate(360deg); opacity: 1; }
+  100% { transform: translate(var(--tx), calc(var(--ty) + 10px)) scale(0.3) rotate(420deg); opacity: 0; }
 }
 .popup-amen {
   position: absolute;
-  top: -10px;
+  top: -15px;
   left: 50%;
   transform: translateX(-50%);
   font-weight: bold;
   font-size: 14px;
   color: #4B6E48;
   pointer-events: none;
-  animation: popUpAmen 0.8s ease-out forwards;
+  animation: popUpAmen 1.4s ease-out forwards;
   white-space: nowrap;
   z-index: 10;
-  text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+  text-shadow: 0 1px 3px rgba(255,255,255,0.9);
 }
 .confetti-particle {
   position: absolute;
@@ -61,13 +64,13 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
   height: 6px;
   border-radius: 50%;
   pointer-events: none;
-  animation: popUpConfetti 0.7s ease-out forwards;
+  animation: popUpConfetti 1.5s ease-out forwards;
   z-index: 9;
 }
 
 /* 1줄 고정 균등 분할 버튼바 */
 .bar{display:flex;flex-wrap:nowrap;gap:6px;margin:14px 0;width:100%;box-sizing:border-box;}
-.btn{padding:10px 4px;border:1px solid #D5D1CE;border-radius:9px;background:#F2F0EF;color:#4B6E48;cursor:pointer;flex:1;text-align:center;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition: all 0.2s;}
+.btn{padding:10px 4px;border:1px solid #D5D1CE;border-radius:9px;background:#F2F0EF;color:#4B6E48;cursor:pointer;flex:1;text-align:center;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition: all 0.2s; box-sizing: border-box;}
 .btn:hover{background:#E5E3E2;}
 .primary{background:#4B6E48;color:#fff;border-color:#3A5638;}
 .primary:hover{background:#3A5638;}
@@ -75,7 +78,7 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
 .card{border:1px solid #E5E3E2;border-radius:14px;padding:16px;margin:10px 0;background:#FFFFFF;box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
 .meta{display:flex;justify-content:space-between;color:#898989;font-size:13px}
 .title{font-size:17px;margin:12px 0;color:#333333;}
-.actions{text-align:right;display:flex;justify-content:flex-end;gap:6px}
+.actions{text-align:right;display:flex;justify-content:space-between;gap:6px;width:100%;}
 .done{background:#F9F8F7;opacity:.85;border-color:#D5D1CE;}
 .modal{display:none;position:fixed;inset:0;background:#0005;align-items:center;justify-content:center;padding:15px;z-index:100;}
 .box{background:#fff;border-radius:15px;padding:20px;width:min(480px,100%);box-shadow: 0 10px 30px rgba(0,0,0,0.1);}
@@ -295,7 +298,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
         <div class="actions" style="margin-top:12px;">
           <button class="btn" onclick="editPrayer('${x.id}')">수정</button>
           <div class="btn-wrapper" id="wrap-${x.id}">
-            <button class="btn" onclick="toggle('${x.id}', event)">${d ? "✓ 기도함" : "□ 기도하기"}</button>
+            <button class="btn" style="width:100%;" onclick="toggle('${x.id}', event)">${d ? "✓ 기도함" : "□ 기도하기"}</button>
           </div>
           <button class="btn" onclick="respond('${x.id}')">응답됨</button>
         </div>
@@ -346,33 +349,32 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 기도 완료 버튼 클릭 시 애니메이션 효과 실행 함수
+  // 기도 완료 버튼 클릭 시 애니메이션 효과 실행 함수 (속도 조절 및 여유로운 타이밍)
   function triggerAmenAnimation(wrapperEl) {
     // 아멘 텍스트 생성
     const amenEl = document.createElement("div");
     amenEl.className = "popup-amen";
     amenEl.textContent = "🙏 아멘!";
     wrapperEl.appendChild(amenEl);
-    setTimeout(() => amenEl.remove(), 800);
+    setTimeout(() => amenEl.remove(), 1400);
 
     // 색색의 꽃가루(파티클) 여러 개 생성
     const colors = ["#4B6E48", "#B2AC88", "#E3A857", "#D98880", "#85C1E9"];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 14; i++) {
       const p = document.createElement("div");
       p.className = "confetti-particle";
       p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
       
-      // 사방으로 퍼져나갈 랜덤 좌표 설정 (-45px ~ 45px)
       const angle = Math.random() * Math.PI * 2;
-      const distance = 25 + Math.random() * 30;
+      const distance = 30 + Math.random() * 35;
       const tx = Math.cos(angle) * distance + "px";
-      const ty = Math.sin(angle) * distance - 15 + "px";
+      const ty = Math.sin(angle) * distance - 20 + "px";
       
       p.style.setProperty("--tx", tx);
       p.style.setProperty("--ty", ty);
       
       wrapperEl.appendChild(p);
-      setTimeout(() => p.remove(), 700);
+      setTimeout(() => p.remove(), 1500);
     }
   }
 
@@ -431,11 +433,11 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
         <div class="muted">총 기도 ${getValidPrayerCount(x)}일</div>
         <p style="margin:10px 0 14px; font-size:14px; color:#444;">${esc(x.thanks || "감사 기록 없음")}</p>
         <div class="actions">
-          <button class="btn" onclick="openThanksModal('${x.id}')">감사 기록</button>
-          <button class="btn" onclick="restore('${x.id}')">다시 기도동산으로</button>
+          <button class="btn" style="flex:1;" onclick="openThanksModal('${x.id}')">감사 기록</button>
+          <button class="btn" style="flex:1;" onclick="restore('${x.id}')">다시 기도동산으로</button>
         </div>
       </div>
-    `).join("") || '<div class="empty">응답된 기도 열매가 아직 없습니다.</div>';
+    `).join("") || '<div class="empty">응답된 열매가 아직 없습니다.</div>';
   }
 
   window.openThanksModal = function(id) {
