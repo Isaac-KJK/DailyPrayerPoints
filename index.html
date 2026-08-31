@@ -25,7 +25,7 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
   transform-origin: bottom center;
 }
 
-/* 아멘 & 꽃가루 폭죽 애니메이션 스타일 (카드 기준 절대 좌표 및 여유로운 속도) */
+/* 아멘 & 꽃가루 폭죽 애니메이션 스타일 (시간 50% 연장: 2.7s) */
 .card {
   position: relative;
   border: 1px solid #E5E3E2;
@@ -56,7 +56,7 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
   font-size: 16px;
   color: #4B6E48;
   pointer-events: none;
-  animation: popUpAmen 3s ease-out forwards;
+  animation: popUpAmen 2.7s ease-out forwards;
   white-space: nowrap;
   z-index: 100;
   text-shadow: 0 1px 4px rgba(255,255,255,0.9);
@@ -68,7 +68,7 @@ h1{margin:0 0 6px;font-size:22px;color:#4B6E48;}
   height: 8px;
   border-radius: 50%;
   pointer-events: none;
-  animation: popUpConfetti 3s ease-out forwards;
+  animation: popUpConfetti 2.7s ease-out forwards;
   z-index: 99;
 }
 
@@ -353,7 +353,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 기도 완료 버튼 클릭 시 애니메이션 효과 실행 함수 (카드 기준 영역에서 충분히 눈에 띄게 표시)
+  // 기도 완료 버튼 클릭 시 애니메이션 효과 실행 함수 (시간 2.7초 반영)
   function triggerAmenAnimation(cardEl, btnEl) {
     const cardRect = cardEl.getBoundingClientRect();
     const btnRect = btnEl.getBoundingClientRect();
@@ -366,7 +366,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     amenEl.className = "popup-amen";
     amenEl.style.left = `${centerX}px`;
     amenEl.style.top = `${centerY}px`;
-    amenEl.textContent = "아멘!";
+    amenEl.textContent = "🙏 아멘!";
     cardEl.appendChild(amenEl);
     setTimeout(() => amenEl.remove(), 2700);
 
@@ -392,7 +392,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
- window.toggle = async function(id, event) {
+  window.toggle = async function(id, event) {
     let x = items.find(x => x.id === id);
     x.logs = x.logs || {};
     if (selectedDate < x.createdAt) {
@@ -402,7 +402,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     const wasCompleted = !!x.logs[selectedDate];
     x.logs[selectedDate] = !wasCompleted;
 
-    // 미체크 상태에서 체크 상태로 바뀔 때 애니메이션 실행
     if (!wasCompleted && x.logs[selectedDate]) {
       const cardEl = document.getElementById(`card-${id}`);
       const btnEl = document.getElementById(`btn-${id}`);
@@ -411,12 +410,11 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       }
     }
 
-    // 데이터는 즉시 백그라운드 저장하되, 
-    // 화면 전체 리렌더링은 애니메이션이 충분히 보일 수 있도록 0.5초 뒤에 실행
     await save(); 
+    // 애니메이션이 완전히 끝날 수 있도록 리렌더링을 0.8초 뒤로 지연
     setTimeout(() => {
       render();
-    }, 500);
+    }, 800);
   }
 
   window.respond = async function(id) {
