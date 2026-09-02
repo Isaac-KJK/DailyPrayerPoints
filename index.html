@@ -6,7 +6,7 @@
 <title>나의 기도동산</title>
 <style>
 body{margin:0;background:#F2F0EF;font-family:Arial,"Malgun Gothic",sans-serif;color:#333333}
-.app{max-width:820px;margin:auto;background:#fff;min-height:100vh;box-shadow: 0 4px 20px rgba(75, 110, 72, 0.08);}
+.app{max-width:820px;margin:auto;background:#fff;min-height:100vh;box-shadow: 0 4px 20px rgba(75, 110, 72, 0.08);position:relative;}
 header{padding:20px;border-bottom:1px solid #E5E3E2;display:flex;flex-direction:column;gap:15px;background:#F9F8F7;}
 @media(min-width:600px){header{flex-direction:row;justify-content:space-between;align-items:flex-start}}
 main{padding:18px}
@@ -91,6 +91,43 @@ input,select{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;
 textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font:inherit;min-height:90px;resize:none;box-sizing:border-box;background:#F9F8F7;}
 .empty{text-align:center;padding:50px;color:#898989}
 
+/* 우측 하단 고정 스크롤 버튼 스타일 */
+.floating-scroll-btns {
+  position: fixed;
+  bottom: 25px;
+  right: calc(50% - 410px + 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 999;
+}
+@media(max-width: 860px) {
+  .floating-scroll-btns {
+    right: 20px;
+  }
+}
+.float-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #4B6E48;
+  color: #fff;
+  border: 1px solid #3A5638;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transition: background 0.2s, transform 0.2s;
+  padding: 0;
+}
+.float-btn:hover {
+  background: #3A5638;
+  transform: translateY(-2px);
+}
+
 /* 기도동산 성장 정보 카드 배지 스타일 */
 .forest-badge {
   display: inline-flex;
@@ -119,7 +156,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
 #loginScreen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:20px;text-align:center;}
 </style>
 
-<!-- Firebase SDK CDN (v10 방식) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -219,8 +255,17 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     render();
   }
 
+  window.scrollToTop = function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  window.scrollToBottom = function() {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+
   function initMonthSelect() {
     const select = document.getElementById("calMonthSelect");
+    if (!select) return;
     let options = '';
     const now = new Date();
     for (let i = 0; i < 24; i++) {
@@ -262,8 +307,10 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       if (day <= 15) { row1 += dayHtml; } else { row2 += dayHtml; }
     }
 
-    document.getElementById("calRow1").innerHTML = row1;
-    document.getElementById("calRow2").innerHTML = row2;
+    const r1 = document.getElementById("calRow1");
+    const r2 = document.getElementById("calRow2");
+    if (r1) r1.innerHTML = row1;
+    if (r2) r2.innerHTML = row2;
   }
 
   window.render = function() {
@@ -271,43 +318,49 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     const formatter = new Intl.DateTimeFormat("ko-KR", { year: 'numeric', month: 'long', day: 'numeric' });
     const weekdayFormatter = new Intl.DateTimeFormat("ko-KR", { weekday: 'short' });
     
-    document.getElementById("today").textContent = `${formatter.format(now)} (${weekdayFormatter.format(now)})`;
+    const todayEl = document.getElementById("today");
+    if (todayEl) todayEl.textContent = `${formatter.format(now)} (${weekdayFormatter.format(now)})`;
     
     renderCalendar();
 
     let active = items.filter(x => !x.responded),
         done = active.filter(x => x.logs && x.logs[selectedDate] && selectedDate >= x.createdAt).length;
     
-    document.getElementById("summary").innerHTML = `${fmt(selectedDate)} 기준 (${done}/${active.length}개 완료) · 기도응답 ${items.filter(x => x.responded).length}건`;
+    const summaryEl = document.getElementById("summary");
+    if (summaryEl) summaryEl.innerHTML = `${fmt(selectedDate)} 기준 (${done}/${active.length}개 완료) · 기도응답 ${items.filter(x => x.responded).length}건`;
     
     let allButtonsHtml = `
       <button class="btn primary" onclick="openForm()">추가</button>
       <button class="btn ${window.currentFilter === '응답' ? 'primary' : ''}" onclick="showResponses()">응답</button>
     ` + cats.map(c => `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`).join("");
     
-    document.getElementById("actionButtonsBar").innerHTML = allButtonsHtml;
+    const actionButtonsBar = document.getElementById("actionButtonsBar");
+    if (actionButtonsBar) actionButtonsBar.innerHTML = allButtonsHtml;
     
     let a = active.filter(x => window.currentFilter === "전체" || x.category === window.currentFilter);
-    document.getElementById("list").innerHTML = a.length ? a.map(x => {
-      let d = x.logs && x.logs[selectedDate] && selectedDate >= x.createdAt, 
-          n = getValidPrayerCount(x),
-          stage = getTreeStageInfo(x);
-      return `<div class="card ${d ? "done" : ""}" id="card-${x.id}">
-        <div class="meta"><span>${esc(x.category)}</span><span>작성 ${fmt(x.createdAt)} · ${days(x.createdAt)}일째</span></div>
-        <div style="margin-top:10px;">
-          <span class="forest-badge"><span class="animated-tree">${stage.emoji}</span> ${stage.name} (${days(x.createdAt)}일째)</span>
-        </div>
-        <div class="title">${esc(x.title)}</div>
-        <div class="muted">실제기도${n}일</div>
-        <div class="actions" style="margin-top:12px;">
-          <button class="btn" style="flex:1;" onclick="editPrayer('${x.id}')">수정</button>
-          <div class="btn-wrapper" id="wrap-${x.id}">
-            <button class="btn" style="width:100%;" id="btn-${x.id}" onclick="toggle('${x.id}', event)">${d ? "✓ 기도함" : "□ 기도하기"}</button>
+    const listEl = document.getElementById("list");
+    if (listEl) {
+      listEl.innerHTML = a.length ? a.map(x => {
+        let d = x.logs && x.logs[selectedDate] && selectedDate >= x.createdAt, 
+            n = getValidPrayerCount(x),
+            stage = getTreeStageInfo(x);
+        return `<div class="card ${d ? "done" : ""}" id="card-${x.id}">
+          <div class="meta"><span>${esc(x.category)}</span><span>작성 ${fmt(x.createdAt)} · ${days(x.createdAt)}일째</span></div>
+          <div style="margin-top:10px;">
+            <span class="forest-badge"><span class="animated-tree">${stage.emoji}</span> ${stage.name} (${days(x.createdAt)}일째)</span>
           </div>
-          <button class="btn" style="flex:1;" onclick="respond('${x.id}')">응답됨</button>
-        </div>
-      </div>`;
-    }).join("") : '<div class="empty">기도동산에 심어진 나무가 없어요. 기도제목을 추가해 보세요! 🌱</div>';
+          <div class="title">${esc(x.title)}</div>
+          <div class="muted">실제기도${n}일</div>
+          <div class="actions" style="margin-top:12px;">
+            <button class="btn" style="flex:1;" onclick="editPrayer('${x.id}')">수정</button>
+            <div class="btn-wrapper" id="wrap-${x.id}">
+              <button class="btn" style="width:100%;" id="btn-${x.id}" onclick="toggle('${x.id}', event)">${d ? "✓ 기도함" : "□ 기도하기"}</button>
+            </div>
+            <button class="btn" style="flex:1;" onclick="respond('${x.id}')">응답됨</button>
+          </div>
+        </div>`;
+      }).join("") : '<div class="empty">기도동산에 심어진 나무가 없어요. 기도제목을 추가해 보세요! 🌱</div>';
+    }
   }
 
   window.openForm = function(x = null) {
@@ -353,7 +406,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 기도 완료 버튼 클릭 시 애니메이션 효과 실행 함수 (시간 2.7초 반영)
   function triggerAmenAnimation(cardEl, btnEl) {
     const cardRect = cardEl.getBoundingClientRect();
     const btnRect = btnEl.getBoundingClientRect();
@@ -361,7 +413,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     const centerX = (btnRect.left + btnRect.right) / 2 - cardRect.left;
     const centerY = btnRect.top - cardRect.top;
 
-    // 아멘 텍스트 생성
     const amenEl = document.createElement("div");
     amenEl.className = "popup-amen";
     amenEl.style.left = `${centerX}px`;
@@ -370,7 +421,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     cardEl.appendChild(amenEl);
     setTimeout(() => amenEl.remove(), 2700);
 
-    // 색색의 꽃가루(파티클) 생성
     const colors = ["#4B6E48", "#B2AC88", "#E3A857", "#D98880", "#85C1E9", "#F39C12", "#E74C3C"];
     for (let i = 0; i < 18; i++) {
       const p = document.createElement("div");
@@ -411,7 +461,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
 
     await save(); 
-    // 애니메이션이 완전히 끝날 수 있도록 리렌더링을 0.8초 뒤로 지연
     setTimeout(() => {
       render();
     }, 800);
@@ -435,26 +484,30 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       <button class="btn primary" onclick="openForm()">추가</button>
       <button class="btn ${window.currentFilter === '응답' ? 'primary' : ''}" onclick="showResponses()">응답</button>
     ` + cats.map(c => `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`).join("");
-    document.getElementById("actionButtonsBar").innerHTML = allButtonsHtml;
+    const actionButtonsBar = document.getElementById("actionButtonsBar");
+    if (actionButtonsBar) actionButtonsBar.innerHTML = allButtonsHtml;
 
-    document.getElementById("list").innerHTML = items.filter(x => x.responded).map(x => `
-      <div class="card">
-        <div class="meta">
-          <span>${esc(x.category)}</span>
-          <span>시작 ${fmt(x.createdAt)} · 응답 ${fmt(x.responseDate || today())}</span>
+    const listEl = document.getElementById("list");
+    if (listEl) {
+      listEl.innerHTML = items.filter(x => x.responded).map(x => `
+        <div class="card">
+          <div class="meta">
+            <span>${esc(x.category)}</span>
+            <span>시작 ${fmt(x.createdAt)} · 응답 ${fmt(x.responseDate || today())}</span>
+          </div>
+          <div style="margin-top:10px;">
+            <span class="forest-badge"><span class="animated-tree">🍎</span> 응답의 열매 (총 ${days(x.createdAt)}일의 여정)</span>
+          </div>
+          <div class="title">${esc(x.title)}</div>
+          <div class="muted">총 기도 ${getValidPrayerCount(x)}일</div>
+          <p style="margin:10px 0 14px; font-size:14px; color:#444; white-space:pre-wrap; word-break:break-all;">${esc(x.thanks || "감사 기록 없음")}</p>
+          <div class="actions">
+            <button class="btn" style="flex:1;" onclick="openThanksModal('${x.id}')">감사 기록</button>
+            <button class="btn" style="flex:1;" onclick="restore('${x.id}')">다시 기도동산으로</button>
+          </div>
         </div>
-        <div style="margin-top:10px;">
-          <span class="forest-badge"><span class="animated-tree">🍎</span> 응답의 열매 (총 ${days(x.createdAt)}일의 여정)</span>
-        </div>
-        <div class="title">${esc(x.title)}</div>
-        <div class="muted">총 기도 ${getValidPrayerCount(x)}일</div>
-        <p style="margin:10px 0 14px; font-size:14px; color:#444; white-space:pre-wrap; word-break:break-all;">${esc(x.thanks || "감사 기록 없음")}</p>
-        <div class="actions">
-          <button class="btn" style="flex:1;" onclick="openThanksModal('${x.id}')">감사 기록</button>
-          <button class="btn" style="flex:1;" onclick="restore('${x.id}')">다시 기도동산으로</button>
-        </div>
-      </div>
-    `).join("") || '<div class="empty">응답된 열매가 아직 없습니다.</div>';
+      `).join("") || '<div class="empty">응답된 열매가 아직 없습니다.</div>';
+    }
   }
 
   window.openThanksModal = function(id) {
@@ -495,8 +548,8 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     const loginScreen = document.getElementById("loginScreen");
 
     if (user) {
-      loginScreen.style.display = "none";
-      mainApp.style.display = "block";
+      if (loginScreen) loginScreen.style.display = "none";
+      if (mainApp) mainApp.style.display = "block";
 
       items = [];
       try {
@@ -511,15 +564,14 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       initMonthSelect();
       render();
     } else {
-      mainApp.style.display = "none";
-      loginScreen.style.display = "flex";
+      if (mainApp) mainApp.style.display = "none";
+      if (loginScreen) loginScreen.style.display = "flex";
     }
   });
 </script>
 </head>
 <body>
-<!-- 로그인 화면 -->
-<div id="loginScreen">
+<div id="loginScreen" style="display:flex;">
   <div class="box" style="max-width:360px;">
     <h2>나의 기도동산 🌿</h2>
     <p class="muted" style="margin-bottom:20px;">로그인하여 나만의 기도의 동산을 가꿔보세요.</p>
@@ -527,7 +579,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   </div>
 </div>
 
-<!-- 메인 앱 화면 -->
 <div id="mainApp" class="app" style="display:none;">
   <header>
     <div>
@@ -548,9 +599,13 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     <div id="actionButtonsBar" class="bar"></div>
     <div id="list"></div>
   </main>
+
+  <div class="floating-scroll-btns">
+    <button class="float-btn" onclick="scrollToTop()" title="맨 위로">TOP</button>
+    <button class="float-btn" onclick="scrollToBottom()" title="맨 아래로">BOT</button>
+  </div>
 </div>
 
-<!-- 기본 모달 팝업 (기도 추가/수정) -->
 <div id="modal" class="modal">
   <div class="box">
     <h2 id="formTitle" style="color:#4B6E48; margin-top:0;">기도제목 추가</h2>
@@ -570,7 +625,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   </div>
 </div>
 
-<!-- 감사 기록 전용 모달 팝업 -->
 <div id="thanksModal" class="modal">
   <div class="box">
     <h2 style="color:#4B6E48; margin-top:0;">응답 열매 감사 기록</h2>
