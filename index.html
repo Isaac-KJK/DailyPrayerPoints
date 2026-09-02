@@ -91,15 +91,20 @@ input,select{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;
 textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font:inherit;min-height:90px;resize:none;box-sizing:border-box;background:#F9F8F7;}
 .empty{text-align:center;padding:50px;color:#898989}
 
-/* 우측 하단 플로팅 스크롤 버튼 스타일 */
+/* 우측 하단 고정 스크롤 버튼 스타일 */
 .floating-scroll-btns {
   position: fixed;
   bottom: 25px;
-  right: 20px;
+  right: calc(50% - 410px + 20px);
   display: flex;
   flex-direction: column;
   gap: 8px;
   z-index: 999;
+}
+@media(max-width: 860px) {
+  .floating-scroll-btns {
+    right: 20px;
+  }
 }
 .float-btn {
   width: 44px;
@@ -413,88 +418,4 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     // 색색의 꽃가루(파티클) 생성
     const colors = ["#4B6E48", "#B2AC88", "#E3A857", "#D98880", "#85C1E9", "#F39C12", "#E74C3C"];
     for (let i = 0; i < 18; i++) {
-      const p = document.createElement("div");
-      p.className = "confetti-particle";
-      p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-      p.style.left = `${centerX}px`;
-      p.style.top = `${centerY}px`;
-      
-      const angle = Math.random() * Math.PI * 2;
-      const distance = 40 + Math.random() * 55;
-      const tx = Math.cos(angle) * distance + "px";
-      const ty = Math.sin(angle) * distance - 30 + "px";
-      
-      p.style.setProperty("--tx", tx);
-      p.style.setProperty("--ty", ty);
-      
-      cardEl.appendChild(p);
-      setTimeout(() => p.remove(), 2700);
-    }
-  }
-
-  window.toggle = async function(id, event) {
-    let x = items.find(x => x.id === id);
-    x.logs = x.logs || {};
-    if (selectedDate < x.createdAt) {
-      return alert("작성일 이전에는 기도 체크를 할 수 없습니다.");
-    }
-    
-    const wasCompleted = !!x.logs[selectedDate];
-    x.logs[selectedDate] = !wasCompleted;
-
-    if (!wasCompleted && x.logs[selectedDate]) {
-      const cardEl = document.getElementById(`card-${id}`);
-      const btnEl = document.getElementById(`btn-${id}`);
-      if (cardEl && btnEl) {
-        triggerAmenAnimation(cardEl, btnEl);
-      }
-    }
-
-    await save(); 
-    // 애니메이션이 완전히 끝날 수 있도록 리렌더링을 0.8초 뒤로 지연
-    setTimeout(() => {
-      render();
-    }, 800);
-  }
-
-  window.respond = async function(id) {
-    let x = items.find(x => x.id === id);
-    if (confirm("기도응답 열매 맺기 동산으로 이동할까요?")) {
-      x.responded = true;
-      x.responseDate = today();
-      x.thanks = "";
-      await save();
-      showResponses();
-    }
-  }
-
-  window.showResponses = function() {
-    window.currentFilter = "응답";
-    
-    let allButtonsHtml = `
-      <button class="btn primary" onclick="openForm()">추가</button>
-      <button class="btn ${window.currentFilter === '응답' ? 'primary' : ''}" onclick="showResponses()">응답</button>
-    ` + cats.map(c => `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`).join("");
-    document.getElementById("actionButtonsBar").innerHTML = allButtonsHtml;
-
-    document.getElementById("list").innerHTML = items.filter(x => x.responded).map(x => `
-      <div class="card">
-        <div class="meta">
-          <span>${esc(x.category)}</span>
-          <span>시작 ${fmt(x.createdAt)} · 응답 ${fmt(x.responseDate || today())}</span>
-        </div>
-        <div style="margin-top:10px;">
-          <span class="forest-badge"><span class="animated-tree">🍎</span> 응답의 열매 (총 ${days(x.createdAt)}일의 여정)</span>
-        </div>
-        <div class="title">${esc(x.title)}</div>
-        <div class="muted">총 기도 ${getValidPrayerCount(x)}일</div>
-        <p style="margin:10px 0 14px; font-size:14px; color:#444; white-space:pre-wrap; word-break:break-all;">${esc(x.thanks || "감사 기록 없음")}</p>
-        <div class="actions">
-          <button class="btn" style="flex:1;" onclick="openThanksModal('${x.id}')">감사 기록</button>
-          <button class="btn" style="flex:1;" onclick="restore('${x.id}')">다시 기도동산으로</button>
-        </div>
-      </div>
-    `).join("") || '<div class="empty">응답된 열매가 아직 없습니다.</div>';
-  }
-
-  window.openThanksModal = function(id) {
+      const p =
