@@ -6,7 +6,7 @@
 <title>나의 기도동산</title>
 <style>
 body{margin:0;background:#F2F0EF;font-family:Arial,"Malgun Gothic",sans-serif;color:#333333}
-.app{max-width:820px;margin:auto;background:#fff;min-height:100vh;box-shadow: 0 4px 20px rgba(75, 110, 72, 0.08);}
+.app{max-width:820px;margin:auto;background:#fff;min-height:100vh;box-shadow: 0 4px 20px rgba(75, 110, 72, 0.08);position:relative;}
 header{padding:20px;border-bottom:1px solid #E5E3E2;display:flex;flex-direction:column;gap:15px;background:#F9F8F7;}
 @media(min-width:600px){header{flex-direction:row;justify-content:space-between;align-items:flex-start}}
 main{padding:18px}
@@ -91,6 +91,38 @@ input,select{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;
 textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font:inherit;min-height:90px;resize:none;box-sizing:border-box;background:#F9F8F7;}
 .empty{text-align:center;padding:50px;color:#898989}
 
+/* 우측 하단 플로팅 스크롤 버튼 스타일 */
+.floating-scroll-btns {
+  position: fixed;
+  bottom: 25px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 999;
+}
+.float-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #4B6E48;
+  color: #fff;
+  border: 1px solid #3A5638;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transition: background 0.2s, transform 0.2s;
+  padding: 0;
+}
+.float-btn:hover {
+  background: #3A5638;
+  transform: translateY(-2px);
+}
+
 /* 기도동산 성장 정보 카드 배지 스타일 */
 .forest-badge {
   display: inline-flex;
@@ -119,7 +151,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
 #loginScreen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:20px;text-align:center;}
 </style>
 
-<!-- Firebase SDK CDN (v10 방식) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -217,6 +248,15 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   window.selectCalendarDate = function(dStr) {
     selectedDate = dStr;
     render();
+  }
+
+  // 화면 스크롤 제어 함수 추가
+  window.scrollToTop = function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  window.scrollToBottom = function() {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   }
 
   function initMonthSelect() {
@@ -458,129 +498,3 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   }
 
   window.openThanksModal = function(id) {
-    thanksEditId = id;
-    let x = items.find(item => item.id === id);
-    document.getElementById("thanksText").value = x?.thanks || "";
-    document.getElementById("thanksModal").style.display = "flex";
-  }
-
-  window.closeThanksModal = function() {
-    document.getElementById("thanksModal").style.display = "none";
-    thanksEditId = null;
-  }
-
-  window.saveThanks = async function() {
-    if (!thanksEditId) return;
-    let x = items.find(item => item.id === thanksEditId);
-    if (x) {
-      x.thanks = document.getElementById("thanksText").value.trim();
-      await save();
-    }
-    closeThanksModal();
-    showResponses();
-  }
-
-  window.restore = async function(id) {
-    let x = items.find(x => x.id === id);
-    x.responded = false;
-    x.responseDate = null;
-    await save();
-    window.currentFilter = "전체";
-    render();
-  }
-
-  onAuthStateChanged(auth, async (user) => {
-    currentUser = user;
-    const mainApp = document.getElementById("mainApp");
-    const loginScreen = document.getElementById("loginScreen");
-
-    if (user) {
-      loginScreen.style.display = "none";
-      mainApp.style.display = "block";
-
-      items = [];
-      try {
-        const docRef = doc(db, "users", user.uid, "prayerData", "main");
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().items) {
-          items = docSnap.data().items;
-        }
-      } catch (e) {
-        console.error("데이터 로드 실패:", e);
-      }
-      initMonthSelect();
-      render();
-    } else {
-      mainApp.style.display = "none";
-      loginScreen.style.display = "flex";
-    }
-  });
-</script>
-</head>
-<body>
-<!-- 로그인 화면 -->
-<div id="loginScreen">
-  <div class="box" style="max-width:360px;">
-    <h2>나의 기도동산 🌿</h2>
-    <p class="muted" style="margin-bottom:20px;">로그인하여 나만의 기도의 동산을 가꿔보세요.</p>
-    <button class="btn primary" style="width:100%; padding:12px;" onclick="loginWithGoogle()">Google 계정으로 로그인</button>
-  </div>
-</div>
-
-<!-- 메인 앱 화면 -->
-<div id="mainApp" class="app" style="display:none;">
-  <header>
-    <div>
-      <h1>나의 기도동산 🌲</h1>
-      <div id="today" class="muted"></div>
-      <button class="btn" style="margin-top:10px; font-size:11px; padding:4px 10px;" onclick="logout()">로그아웃</button>
-    </div>
-    <div class="calendar-container">
-      <div class="cal-header">
-        <select id="calMonthSelect" class="cal-select" onchange="changeMonth(this.value)"></select>
-      </div>
-      <div id="calRow1" class="cal-row"></div>
-      <div id="calRow2" class="cal-row"></div>
-    </div>
-  </header>
-  <main>
-    <div id="summary" style="font-weight:bold; color:#4B6E48; margin-bottom:8px;"></div>
-    <div id="actionButtonsBar" class="bar"></div>
-    <div id="list"></div>
-  </main>
-</div>
-
-<!-- 기본 모달 팝업 (기도 추가/수정) -->
-<div id="modal" class="modal">
-  <div class="box">
-    <h2 id="formTitle" style="color:#4B6E48; margin-top:0;">기도제목 추가</h2>
-    <label>카테고리</label>
-    <select id="cat"></select>
-    <label>기도제목</label>
-    <textarea id="title"></textarea>
-    <label>작성일</label>
-    <input id="created" type="date">
-    <div class="bar" style="justify-content: space-between; margin-top: 20px;">
-      <button id="deleteBtn" class="btn" style="background:#F2F0EF; border-color:#D5D1CE; color:#898989; display:none;" onclick="deletePrayer()">삭제</button>
-      <div style="display:flex; gap:8px; margin-left:auto;">
-        <button class="btn" onclick="closeForm()">취소</button>
-        <button class="btn primary" onclick="savePrayer()">저장</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 감사 기록 전용 모달 팝업 -->
-<div id="thanksModal" class="modal">
-  <div class="box">
-    <h2 style="color:#4B6E48; margin-top:0;">응답 열매 감사 기록</h2>
-    <label>감사 내용</label>
-    <textarea id="thanksText" placeholder="응답하신 하나님, 감사합니다."></textarea>
-    <div class="bar" style="justify-content: flex-end; margin-top: 20px;">
-      <button class="btn" onclick="closeThanksModal()">취소</button>
-      <button class="btn primary" onclick="saveThanks()">저장</button>
-    </div>
-  </div>
-</div>
-</body>
-</html>
