@@ -177,14 +177,13 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   const auth = getAuth(app);
 
   let items = [],
-      cats = ["전체","자신","가족","교회","비밀화원"], // '비밀화원' 카테고리 추가
+      cats = ["전체","자신","가족","교회","비밀화원"],
       edit = null,
       thanksEditId = null,
       currentUser = null;
 
-  // 비밀화원 잠금 해제 상태를 세션 동안 기억하기 위한 변수
-  let isSecretUnlocked = false;
-  const SECRET_GARDEN_PIN = "7777"; // 비밀화원 접속 비밀번호 (원하시는 번호로 변경 가능)
+  // 비밀화원 설정 관리 객체 (비밀번호는 사용자별 설정에 저장)
+  let secretConfig = { pin: "7777" };
 
   window.currentFilter = "전체";
   let selectedYear = new Date().getFullYear();
@@ -196,7 +195,10 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
         save = async () => { 
           if (!currentUser) return;
           try {
-            await setDoc(doc(db, "users", currentUser.uid, "prayerData", "main"), { items: items });
+            await setDoc(doc(db, "users", currentUser.uid, "prayerData", "main"), { 
+              items: items,
+              secretConfig: secretConfig 
+            });
           } catch (e) {
             console.error("저장 실패:", e);
           }
@@ -243,22 +245,48 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 필터 클릭 시 비밀화원일 경우 비밀번호 확인 수행
+  // 비밀화원 진입 시 매번 비밀번호 확인
   window.setFilter = function(c) {
-    if (c === "비밀화원" && !isSecretUnlocked) {
-      let pin = prompt("🌿 비밀화원(대나무숲) 입장 비밀번호를 입력하세요:");
-      if (pin === null) return; // 취소 시 무시
-      if (pin.trim() !== SECRET_GARDEN_PIN) {
+    if (c === "비밀화원") {
+      let pin = prompt("🌿 비밀화원(대나무숲) 비밀번호를 입력하세요:");
+      if (pin === null) return; // 취소
+      let currentPin = secretConfig.pin || "7777";
+      if (pin.trim() !== currentPin) {
         alert("비밀번호가 일치하지 않습니다.");
         return;
       }
-      isSecretUnlocked = true;
-    } else if (c !== "비밀화원") {
-      // 다른 카테고리로 이동 시 보안 잠금을 다시 걸어둘 수도 있으나, 편의상 세션 유지
     }
 
     window.currentFilter = c;
     render();
+  }
+
+  // 사용자 지정 비밀번호 변경 메뉴
+  window.changeSecretPin = async function() {
+    let oldPin = prompt("기존 비밀번호를 입력하세요:");
+    if (oldPin === null) return;
+    let currentPin = secretConfig.pin || "7777";
+    if (oldPin.trim() !== currentPin) {
+      alert("기존 비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    let newPin = prompt("변경할 새 비밀번호를 입력하세요:");
+    if (newPin === null) return;
+    if (!newPin.trim()) {
+      alert("유효한 비밀번호를 입력해주세요.");
+      return;
+    }
+
+    let confirmPin = prompt("새 비밀번호를 한 번 더 입력해주세요:");
+    if (confirmPin !== newPin) {
+      alert("비밀번호가 일치하지 않습니다. 변경이 취소되었습니다.");
+      return;
+    }
+
+    secretConfig.pin = newPin.trim();
+    await save();
+    alert("비밀화원 비밀번호가 성공적으로 변경되었습니다.");
   }
 
   window.changeMonth = function(val) {
@@ -303,7 +331,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     const lastDayDate = new Date(year, month + 1, 0).getDate();
 
     let row1 = '', row2 = '';
-    // 비밀화원은 메인 잔디밭 계산에서 제외하거나 포함할 수 있으나, 일반 기도와 동일하게 취급 (단, 내용만 보호)
     let activeItems = items.filter(x => !x.responded);
 
     for (let day = 1; day <= lastDayDate; day++) {
@@ -351,10 +378,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     let allButtonsHtml = `
       <button class="btn primary" onclick="openForm()">추가</button>
       <button class="btn ${window.currentFilter === '응답' ? 'primary' : ''}" onclick="showResponses()">응답</button>
-    ` + cats.map(c => {
-      let displayName = c === "비밀화원" ? "🔒 비밀화원" : c;
-      return `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(displayName)}</button>`;
-    }).join("");
+    ` + cats.map(c => `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`).join("");
     
     const actionButtonsBar = document.getElementById("actionButtonsBar");
     if (actionButtonsBar) actionButtonsBar.innerHTML = allButtonsHtml;
@@ -367,11 +391,11 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
             n = getValidPrayerCount(x),
             stage = getTreeStageInfo(x);
 
-        // 비밀화원 항목이고 아직 잠금해제가 안 되었을 경우 제목을 숨김 처리
+        // 비밀화원은 아이콘 없이 항상 제목을 숨김 처리하고 클릭 시마다 비밀번호 검증
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem ? "🔒 비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
+        let displayTitle = isSecretItem ? "비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
         let titleStyle = isSecretItem ? "color: #898989; font-style: italic; cursor: pointer;" : "";
-        let titleClickAction = isSecretItem && !isSecretUnlocked ? `onclick="tryUnlockSecret()"` : ``;
+        let titleClickAction = isSecretItem ? `onclick="clickSecretTitle('${x.id}')"` : ``;
 
         return `<div class="card ${d ? "done" : ""}" id="card-${x.id}">
           <div class="meta"><span>${esc(x.category)}</span><span>작성 ${fmt(x.createdAt)} · ${days(x.createdAt)}일째</span></div>
@@ -392,28 +416,31 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 잠겨있는 비밀화원 제목을 클릭했을 때 해제하는 함수
-  window.tryUnlockSecret = function() {
-    let pin = prompt("🌿 비밀화원(대나무숲) 입장 비밀번호를 입력하세요:");
+  // 비밀화원 항목 제목을 클릭할 때마다 비밀번호 확인 후 임시 내용 노출 (혹은 카테고리 진입 안내)
+  window.clickSecretTitle = function(id) {
+    let pin = prompt("🌿 비밀화원(대나무숲) 비밀번호를 입력하세요:");
     if (pin === null) return;
-    if (pin.trim() === SECRET_GARDEN_PIN) {
-      isSecretUnlocked = true;
-      window.currentFilter = "비밀화원";
-      render();
-    } else {
+    let currentPin = secretConfig.pin || "7777";
+    if (pin.trim() !== currentPin) {
       alert("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    // 비밀번호 맞으면 해당 글의 실제 내용 alert 또는 상세 확인 창으로 보여주기
+    let x = items.find(item => item.id === id);
+    if (x) {
+      alert(`[비밀화원 내용]\n\n${x.title}`);
     }
   }
 
   window.openForm = function(x = null) {
-    // 비밀화원 글을 수정/추가하려 할 때도 비밀번호 체크
-    if (x && x.category === "비밀화원" && !isSecretUnlocked) {
-      let pin = prompt("🌿 비밀화원 글을 수정하려면 비밀번호가 필요합니다:");
-      if (pin === null || pin.trim() !== SECRET_GARDEN_PIN) {
+    if (x && x.category === "비밀화원") {
+      let pin = prompt("🌿 비밀화원 글을 수정하려면 비밀번호를 입력하세요:");
+      if (pin === null) return;
+      let currentPin = secretConfig.pin || "7777";
+      if (pin.trim() !== currentPin) {
         alert("비밀번호가 틀렸습니다.");
         return;
       }
-      isSecretUnlocked = true;
     }
 
     edit = x?.id || null;
@@ -440,13 +467,14 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     let c = document.getElementById("cat").value,
         d = document.getElementById("created").value || today();
     
-    if (c === "비밀화원" && !isSecretUnlocked) {
+    if (c === "비밀화원" && !edit) {
       let pin = prompt("🌿 비밀화원에 저장하려면 비밀번호를 입력하세요:");
-      if (pin === null || pin.trim() !== SECRET_GARDEN_PIN) {
+      if (pin === null) return;
+      let currentPin = secretConfig.pin || "7777";
+      if (pin.trim() !== currentPin) {
         alert("비밀번호가 틀렸습니다.");
         return;
       }
-      isSecretUnlocked = true;
     }
 
     if (edit) {
@@ -545,10 +573,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     let allButtonsHtml = `
       <button class="btn primary" onclick="openForm()">추가</button>
       <button class="btn ${window.currentFilter === '응답' ? 'primary' : ''}" onclick="showResponses()">응답</button>
-    ` + cats.map(c => {
-      let displayName = c === "비밀화원" ? "🔒 비밀화원" : c;
-      return `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(displayName)}</button>`;
-    }).join("");
+    ` + cats.map(c => `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`).join("");
     
     const actionButtonsBar = document.getElementById("actionButtonsBar");
     if (actionButtonsBar) actionButtonsBar.innerHTML = allButtonsHtml;
@@ -557,8 +582,8 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     if (listEl) {
       listEl.innerHTML = items.filter(x => x.responded).map(x => {
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem && !isSecretUnlocked ? "🔒 비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
-        let displayThanks = isSecretItem && !isSecretUnlocked ? "비밀화원 내용입니다. 잠금을 해제해주세요." : esc(x.thanks || "감사 기록 없음");
+        let displayTitle = isSecretItem ? "비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
+        let displayThanks = isSecretItem ? "비밀화원 내용입니다." : esc(x.thanks || "감사 기록 없음");
 
         return `
         <div class="card">
@@ -569,7 +594,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
           <div style="margin-top:10px;">
             <span class="forest-badge"><span class="animated-tree">🍎</span> 응답의 열매 (총 ${days(x.createdAt)}일의 여정)</span>
           </div>
-          <div class="title">${displayTitle}</div>
+          <div class="title" ${isSecretItem ? `style="color:#898989; font-style:italic;"` : ""}>${displayTitle}</div>
           <div class="muted">총 기도 ${getValidPrayerCount(x)}일</div>
           <p style="margin:10px 0 14px; font-size:14px; color:#444; white-space:pre-wrap; word-break:break-all;">${displayThanks}</p>
           <div class="actions">
@@ -584,13 +609,14 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
 
   window.openThanksModal = function(id) {
     let x = items.find(item => item.id === id);
-    if (x && x.category === "비밀화원" && !isSecretUnlocked) {
+    if (x && x.category === "비밀화원") {
       let pin = prompt("🌿 비밀화원 감사 기록을 보려면 비밀번호를 입력하세요:");
-      if (pin === null || pin.trim() !== SECRET_GARDEN_PIN) {
+      if (pin === null) return;
+      let currentPin = secretConfig.pin || "7777";
+      if (pin.trim() !== currentPin) {
         alert("비밀번호가 틀렸습니다.");
         return;
       }
-      isSecretUnlocked = true;
     }
 
     thanksEditId = id;
@@ -633,11 +659,14 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       if (mainApp) mainApp.style.display = "block";
 
       items = [];
+      secretConfig = { pin: "7777" };
       try {
         const docRef = doc(db, "users", user.uid, "prayerData", "main");
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().items) {
-          items = docSnap.data().items;
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.items) items = data.items;
+          if (data.secretConfig) secretConfig = data.secretConfig;
         }
       } catch (e) {
         console.error("데이터 로드 실패:", e);
@@ -667,7 +696,10 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     <div>
       <h1>나의 기도동산 🌲</h1>
       <div id="today" class="muted"></div>
-      <button class="btn" style="margin-top:10px; font-size:11px; padding:4px 10px;" onclick="logout()">로그아웃</button>
+      <div style="display:flex; gap:6px; margin-top:10px;">
+        <button class="btn" style="font-size:11px; padding:4px 8px;" onclick="logout()">로그아웃</button>
+        <button class="btn" style="font-size:11px; padding:4px 8px;" onclick="changeSecretPin()">비밀번호 변경</button>
+      </div>
     </div>
     <div class="calendar-container">
       <div class="cal-header">
