@@ -183,7 +183,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       currentUser = null;
 
   let secretConfig = { pin: "7777" };
-  let pendingSecretAction = null; // 비밀번호 인증 후 실행할 콜백 함수 저장
+  let pendingSecretAction = null; // 비밀번호 변경 모달에서 사용
 
   window.currentFilter = "전체";
   let selectedYear = new Date().getFullYear();
@@ -245,21 +245,13 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 비밀화원 카테고리 클릭 시 모달 오픈
+  // 일반 카테고리와 동일하게 즉시 필터 적용
   window.setFilter = function(c) {
-    if (c === "비밀화원") {
-      openSecretModal(() => {
-        window.currentFilter = "비밀화원";
-        render();
-      });
-      return;
-    }
-
     window.currentFilter = c;
     render();
   }
 
-  // 비밀화원 모달 관련 제어 함수들
+  // 비밀번호 변경 등을 위한 비밀화원 보안 설정 모달 제어 함수들
   window.openSecretModal = function(actionCallback = null) {
     if (actionCallback) pendingSecretAction = actionCallback;
     document.getElementById("secretPinInput").value = "";
@@ -430,9 +422,9 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
             stage = getTreeStageInfo(x);
 
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem ? "비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
-        let titleStyle = isSecretItem ? "color: #898989; font-style: italic; cursor: pointer;" : "";
-        let titleClickAction = isSecretItem ? `onclick="clickSecretTitle('${x.id}')"` : ``;
+        let displayTitle = isSecretItem ? esc(x.title) : esc(x.title);
+        let titleStyle = isSecretItem ? "cursor: pointer;" : "";
+        let titleClickAction = isSecretItem ? `onclick="openSecretDetailModal('${x.id}')"` : ``;
 
         return `<div class="card ${d ? "done" : ""}" id="card-${x.id}">
           <div class="meta"><span>${esc(x.category)}</span><span>작성 ${fmt(x.createdAt)} · ${days(x.createdAt)}일째</span></div>
@@ -453,17 +445,10 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 비밀화원 항목 제목 클릭 시 인증 후 전용 내용 모달 오픈
-  window.clickSecretTitle = function(id) {
-    openSecretModal(() => {
-      let x = items.find(item => item.id === id);
-      if (x) {
-        openSecretDetailModal(x);
-      }
-    });
-  }
-
-  window.openSecretDetailModal = function(x) {
+  // 비밀화원 항목 내용 조회 모달 오픈
+  window.openSecretDetailModal = function(id) {
+    let x = items.find(item => item.id === id);
+    if (!x) return;
     document.getElementById("secretDetailTitle").textContent = `${x.category} (작성: ${fmt(x.createdAt)})`;
     document.getElementById("secretDetailBody").textContent = x.title;
     document.getElementById("secretDetailEditBtn").onclick = function() {
@@ -478,12 +463,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   }
 
   window.openForm = function(x = null) {
-    if (x && x.category === "비밀화원") {
-      openSecretModal(() => {
-        proceedOpenForm(x);
-      });
-      return;
-    }
     proceedOpenForm(x);
   }
 
@@ -511,13 +490,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     if (!t) return alert("기도제목을 입력해주세요.");
     let c = document.getElementById("cat").value,
         d = document.getElementById("created").value || today();
-    
-    if (c === "비밀화원" && !edit) {
-      openSecretModal(async () => {
-        await executeSavePrayer(t, c, d);
-      });
-      return;
-    }
 
     await executeSavePrayer(t, c, d);
   }
@@ -632,8 +604,8 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     if (listEl) {
       listEl.innerHTML = items.filter(x => x.responded).map(x => {
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem ? "비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
-        let displayThanks = isSecretItem ? "비밀화원 내용입니다." : esc(x.thanks || "감사 기록 없음");
+        let displayTitle = esc(x.title);
+        let displayThanks = esc(x.thanks || "감사 기록 없음");
 
         return `
         <div class="card">
@@ -644,7 +616,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
           <div style="margin-top:10px;">
             <span class="forest-badge"><span class="animated-tree">🍎</span> 응답의 열매 (총 ${days(x.createdAt)}일의 여정)</span>
           </div>
-          <div class="title" ${isSecretItem ? `style="color:#898989; font-style:italic;"` : ""}>${displayTitle}</div>
+          <div class="title">${displayTitle}</div>
           <div class="muted">총 기도 ${getValidPrayerCount(x)}일</div>
           <p style="margin:10px 0 14px; font-size:14px; color:#444; white-space:pre-wrap; word-break:break-all;">${displayThanks}</p>
           <div class="actions">
@@ -658,13 +630,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   }
 
   window.openThanksModal = function(id) {
-    let x = items.find(item => item.id === id);
-    if (x && x.category === "비밀화원") {
-      openSecretModal(() => {
-        proceedOpenThanksModal(id);
-      });
-      return;
-    }
     proceedOpenThanksModal(id);
   }
 
@@ -770,10 +735,10 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   </div>
 </div>
 
-<!-- 비밀화원 인증 및 비밀번호 변경 모달 팝업 -->
+<!-- 비밀화원 인증 및 비밀번호 변경 모달 팝업 (비밀번호 변경 관리를 위해 유지) -->
 <div id="secretModal" class="modal">
   <div class="box">
-    <h2 style="color:#4B6E48; margin-top:0;">🌻 비밀화원 보안 인증</h2>
+    <h2 style="color:#4B6E48; margin-top:0;">🌻 비밀화원 보안 설정</h2>
     <label>비밀번호</label>
     <input id="secretPinInput" type="password" placeholder="비밀번호를 입력하세요">
     
@@ -819,11 +784,11 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     <textarea id="title"></textarea>
     <label>작성일</label>
     <input id="created" type="date">
-    <div class="bar" style="justify-content: space-between; margin-top: 20px;">
-      <button id="deleteBtn" class="btn" style="background:#F2F0EF; border-color:#D5D1CE; color:#898989; display:none;" onclick="deletePrayer()">삭제</button>
-      <div style="display:flex; gap:8px; margin-left:auto;">
-        <button class="btn" onclick="closeForm()">취소</button>
-        <button class="btn primary" onclick="savePrayer()">저장</button>
+    <div class="bar" style="justify-content: space-between; margin-top: 20px; display: flex; gap: 8px; width: 100%;">
+      <button id="deleteBtn" class="btn" style="background:#F2F0EF; border-color:#D5D1CE; color:#898989; display:none; flex: 1;" onclick="deletePrayer()">삭제</button>
+      <div style="display:flex; gap:8px; flex: 3;" id="formActionGroup">
+        <button class="btn" style="flex: 1;" onclick="closeForm()">취소</button>
+        <button class="btn primary" style="flex: 3;" onclick="savePrayer()">저장</button>
       </div>
     </div>
   </div>
