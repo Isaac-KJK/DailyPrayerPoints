@@ -245,7 +245,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 일반 카테고리와 동일하게 즉시 필터 적용
+  // 일반 카테고리와 동일하게 즉시 필터 적용 (비밀화원 포함 패스워드 검증 제거)
   window.setFilter = function(c) {
     window.currentFilter = c;
     render();
@@ -422,8 +422,9 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
             stage = getTreeStageInfo(x);
 
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem ? esc(x.title) : esc(x.title);
-        let titleStyle = isSecretItem ? "cursor: pointer;" : "";
+        // 비밀화원 항목일 경우 본문 대신 숨김 표시 적용 및 클릭 시 비밀번호 확인 후 조회하도록 설정
+        let displayTitle = isSecretItem ? "🔒 비밀화원에 숨겨진 기도제목입니다." : esc(x.title);
+        let titleStyle = isSecretItem ? "cursor: pointer; color: #898989; font-style: italic;" : "";
         let titleClickAction = isSecretItem ? `onclick="openSecretDetailModal('${x.id}')"` : ``;
 
         return `<div class="card ${d ? "done" : ""}" id="card-${x.id}">
@@ -445,17 +446,19 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 비밀화원 항목 내용 조회 모달 오픈
+  // 비밀화원 항목 내용 조회 시 비밀번호 인증 과정을 거치도록 수정
   window.openSecretDetailModal = function(id) {
-    let x = items.find(item => item.id === id);
-    if (!x) return;
-    document.getElementById("secretDetailTitle").textContent = `${x.category} (작성: ${fmt(x.createdAt)})`;
-    document.getElementById("secretDetailBody").textContent = x.title;
-    document.getElementById("secretDetailEditBtn").onclick = function() {
-      closeSecretDetailModal();
-      editPrayer(x.id);
-    };
-    document.getElementById("secretDetailModal").style.display = "flex";
+    openSecretModal(() => {
+      let x = items.find(item => item.id === id);
+      if (!x) return;
+      document.getElementById("secretDetailTitle").textContent = `${x.category} (작성: ${fmt(x.createdAt)})`;
+      document.getElementById("secretDetailBody").textContent = x.title;
+      document.getElementById("secretDetailEditBtn").onclick = function() {
+        closeSecretDetailModal();
+        editPrayer(x.id);
+      };
+      document.getElementById("secretDetailModal").style.display = "flex";
+    });
   }
 
   window.closeSecretDetailModal = function() {
