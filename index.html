@@ -282,8 +282,9 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
     closeSecretModal();
     if (pendingSecretAction) {
-      pendingSecretAction();
+      let actionToRun = pendingSecretAction;
       pendingSecretAction = null;
+      actionToRun();
     }
   }
 
@@ -408,7 +409,11 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     let allButtonsHtml = `
       <button class="btn primary" onclick="openForm()">추가</button>
       <button class="btn ${window.currentFilter === '응답' ? 'primary' : ''}" onclick="showResponses()">응답</button>
-    ` + cats.map(c => `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`).join("");
+    ` + cats.map(c => {
+      let isActive = (window.currentFilter === c);
+      let btnClass = isActive ? 'btn primary' : 'btn';
+      return `<button class="${btnClass}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`;
+    }).join("");
     
     const actionButtonsBar = document.getElementById("actionButtonsBar");
     if (actionButtonsBar) actionButtonsBar.innerHTML = allButtonsHtml;
@@ -422,7 +427,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
             stage = getTreeStageInfo(x);
 
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem ? "비밀화원(잠겨 있음)" : esc(x.title);
+        let displayTitle = isSecretItem ? "비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
         let titleStyle = isSecretItem ? "color: #898989; font-style: italic; cursor: pointer;" : "";
         let titleClickAction = isSecretItem ? `onclick="clickSecretTitle('${x.id}')"` : ``;
 
@@ -597,7 +602,11 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     let allButtonsHtml = `
       <button class="btn primary" onclick="openForm()">추가</button>
       <button class="btn ${window.currentFilter === '응답' ? 'primary' : ''}" onclick="showResponses()">응답</button>
-    ` + cats.map(c => `<button class="btn ${window.currentFilter === c ? 'primary' : ''}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`).join("");
+    ` + cats.map(c => {
+      let isActive = (window.currentFilter === c);
+      let btnClass = isActive ? 'btn primary' : 'btn';
+      return `<button class="${btnClass}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`;
+    }).join("");
     
     const actionButtonsBar = document.getElementById("actionButtonsBar");
     if (actionButtonsBar) actionButtonsBar.innerHTML = allButtonsHtml;
@@ -606,7 +615,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     if (listEl) {
       listEl.innerHTML = items.filter(x => x.responded).map(x => {
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem ? "비밀화원(잠겨 있음)" : esc(x.title);
+        let displayTitle = isSecretItem ? "비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
         let displayThanks = isSecretItem ? "비밀화원 내용입니다." : esc(x.thanks || "감사 기록 없음");
 
         return `
@@ -739,15 +748,15 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
 
   <!-- 우측 하단 고정 스크롤 버튼 -->
   <div class="floating-scroll-btns">
-    <button class="float-btn" onclick="scrollToTop()" title="맨 위로">TOP</button>
-    <button class="float-btn" onclick="scrollToBottom()" title="맨 아래로">BOT</button>
+    <button class="float-btn" onclick="scrollToTop()" title="맨 위로">맨위</button>
+    <button class="float-btn" onclick="scrollToBottom()" title="맨 아래로">맨아래</button>
   </div>
 </div>
 
 <!-- 비밀화원 인증 및 비밀번호 변경 모달 팝업 -->
 <div id="secretModal" class="modal">
   <div class="box">
-    <h2 style="color:#4B6E48; margin-top:0;">🌿 비밀화원 보안 인증</h2>
+    <h2 style="color:#4B6E48; margin-top:0;">🌻 비밀화원 보안 인증</h2>
     <label>비밀번호</label>
     <input id="secretPinInput" type="password" placeholder="비밀번호를 입력하세요">
     
