@@ -248,11 +248,10 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   // 비밀화원 카테고리 클릭 시 모달 오픈
   window.setFilter = function(c) {
     if (c === "비밀화원") {
-      pendingSecretAction = () => {
+      openSecretModal(() => {
         window.currentFilter = "비밀화원";
         render();
-      };
-      openSecretModal();
+      });
       return;
     }
 
