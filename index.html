@@ -183,7 +183,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       currentUser = null;
 
   let secretConfig = { pin: "7777" };
-  let pendingSecretAction = null; // 비밀번호 변경 모달에서 사용
+  let pendingSecretAction = null; // 비밀번호 인증 후 실행할 콜백 함수
 
   window.currentFilter = "전체";
   let selectedYear = new Date().getFullYear();
@@ -245,13 +245,12 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 일반 카테고리와 동일하게 즉시 필터 적용 (비밀화원 포함 패스워드 검증 제거)
   window.setFilter = function(c) {
     window.currentFilter = c;
     render();
   }
 
-  // 비밀번호 변경 등을 위한 비밀화원 보안 설정 모달 제어 함수들
+  // 비밀화원 보안 설정 모달 제어 함수들
   window.openSecretModal = function(actionCallback = null) {
     if (actionCallback) pendingSecretAction = actionCallback;
     document.getElementById("secretPinInput").value = "";
@@ -422,7 +421,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
             stage = getTreeStageInfo(x);
 
         let isSecretItem = (x.category === "비밀화원");
-        // 비밀화원 항목일 경우 본문 대신 숨김 표시 적용 및 클릭 시 비밀번호 확인 후 조회하도록 설정
         let displayTitle = isSecretItem ? "🔒 비밀화원에 숨겨진 기도제목입니다." : esc(x.title);
         let titleStyle = isSecretItem ? "cursor: pointer; color: #898989; font-style: italic;" : "";
         let titleClickAction = isSecretItem ? `onclick="openSecretDetailModal('${x.id}')"` : ``;
@@ -446,7 +444,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 비밀화원 항목 내용 조회 시 비밀번호 인증 과정을 거치도록 수정
+  // 비밀화원 항목 내용 조회 시 비밀번호 인증 과정을 거치도록 처리
   window.openSecretDetailModal = function(id) {
     openSecretModal(() => {
       let x = items.find(item => item.id === id);
@@ -455,7 +453,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       document.getElementById("secretDetailBody").textContent = x.title;
       document.getElementById("secretDetailEditBtn").onclick = function() {
         closeSecretDetailModal();
-        editPrayer(x.id);
+        openForm(x);
       };
       document.getElementById("secretDetailModal").style.display = "flex";
     });
@@ -466,6 +464,13 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   }
 
   window.openForm = function(x = null) {
+    // 만약 수정하려는 항목이 비밀화원이라면 비밀번호 인증을 먼저 거치도록 제어
+    if (x && x.category === "비밀화원") {
+      openSecretModal(() => {
+        proceedOpenForm(x);
+      });
+      return;
+    }
     proceedOpenForm(x);
   }
 
@@ -606,7 +611,6 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     const listEl = document.getElementById("list");
     if (listEl) {
       listEl.innerHTML = items.filter(x => x.responded).map(x => {
-        let isSecretItem = (x.category === "비밀화원");
         let displayTitle = esc(x.title);
         let displayThanks = esc(x.thanks || "감사 기록 없음");
 
@@ -738,7 +742,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   </div>
 </div>
 
-<!-- 비밀화원 인증 및 비밀번호 변경 모달 팝업 (비밀번호 변경 관리를 위해 유지) -->
+<!-- 비밀화원 인증 및 비밀번호 변경 모달 팝업 -->
 <div id="secretModal" class="modal">
   <div class="box">
     <h2 style="color:#4B6E48; margin-top:0;">🌻 비밀화원 보안 설정</h2>
