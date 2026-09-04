@@ -267,9 +267,9 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     document.getElementById("secretModal").style.display = "flex";
   }
 
-  window.closeSecretModal = function() {
+  window.closeSecretModal = function(clearAction = true) {
     document.getElementById("secretModal").style.display = "none";
-    pendingSecretAction = null;
+    if (clearAction) pendingSecretAction = null;
   }
 
   window.verifySecretPin = function() {
@@ -279,11 +279,16 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       alert("비밀번호가 일치하지 않습니다.");
       return;
     }
-    closeSecretModal();
-    if (pendingSecretAction) {
-      let actionToRun = pendingSecretAction;
-      pendingSecretAction = null;
-      actionToRun();
+    
+    // 콜백을 먼저 백업하고 모달만 닫은 뒤 실행
+    let actionToRun = pendingSecretAction;
+    closeSecretModal(false); // 콜백을 초기화하지 않고 모달만 닫음
+    pendingSecretAction = null;
+
+    if (actionToRun) {
+      setTimeout(() => {
+        actionToRun();
+      }, 50);
     }
   }
 
