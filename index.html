@@ -114,7 +114,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   color: #fff;
   border: 1px solid #3A5638;
   font-size: 11px;
-  font-weight: normal; /* 일반 글씨 두께 */
+  font-weight: normal;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,7 +138,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 13px;
-  color: #4B6E48;
+  color:#4B6E48;
   font-weight: bold;
   margin-bottom: 8px;
 }
@@ -182,8 +182,8 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       thanksEditId = null,
       currentUser = null;
 
-  // 비밀화원 설정 관리 객체 (비밀번호는 사용자별 설정에 저장)
   let secretConfig = { pin: "7777" };
+  let pendingSecretAction = null; // 비밀번호 인증 후 실행할 콜백 함수 저장
 
   window.currentFilter = "전체";
   let selectedYear = new Date().getFullYear();
@@ -245,48 +245,78 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 비밀화원 진입 시 매번 비밀번호 확인
+  // 비밀화원 카테고리 클릭 시 모달 오픈
   window.setFilter = function(c) {
     if (c === "비밀화원") {
-      let pin = prompt("🌿 비밀화원(대나무숲) 비밀번호를 입력하세요:");
-      if (pin === null) return; // 취소
-      let currentPin = secretConfig.pin || "7777";
-      if (pin.trim() !== currentPin) {
-        alert("비밀번호가 일치하지 않습니다.");
-        return;
-      }
+      pendingSecretAction = () => {
+        window.currentFilter = "비밀화원";
+        render();
+      };
+      openSecretModal();
+      return;
     }
 
     window.currentFilter = c;
     render();
   }
 
-  // 사용자 지정 비밀번호 변경 메뉴
-  window.changeSecretPin = async function() {
-    let oldPin = prompt("기존 비밀번호를 입력하세요:");
-    if (oldPin === null) return;
+  // 비밀화원 모달 관련 제어 함수들
+  window.openSecretModal = function(actionCallback = null) {
+    if (actionCallback) pendingSecretAction = actionCallback;
+    document.getElementById("secretPinInput").value = "";
+    document.getElementById("secretChangeSection").style.display = "none";
+    document.getElementById("secretModal").style.display = "flex";
+  }
+
+  window.closeSecretModal = function() {
+    document.getElementById("secretModal").style.display = "none";
+    pendingSecretAction = null;
+  }
+
+  window.verifySecretPin = function() {
+    let pin = document.getElementById("secretPinInput").value;
     let currentPin = secretConfig.pin || "7777";
+    if (pin.trim() !== currentPin) {
+      alert("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    closeSecretModal();
+    if (pendingSecretAction) {
+      pendingSecretAction();
+      pendingSecretAction = null;
+    }
+  }
+
+  window.toggleSecretChangeForm = function() {
+    let section = document.getElementById("secretChangeSection");
+    if (section.style.display === "none") {
+      section.style.display = "block";
+      document.getElementById("oldPinInput").value = "";
+      document.getElementById("newPinInput").value = "";
+    } else {
+      section.style.display = "none";
+    }
+  }
+
+  window.executeSecretChange = async function() {
+    let oldPin = document.getElementById("oldPinInput").value;
+    let newPin = document.getElementById("newPinInput").value;
+    let currentPin = secretConfig.pin || "7777";
+
     if (oldPin.trim() !== currentPin) {
       alert("기존 비밀번호가 일치하지 않습니다.");
       return;
     }
-
-    let newPin = prompt("변경할 새 비밀번호를 입력하세요:");
-    if (newPin === null) return;
     if (!newPin.trim()) {
-      alert("유효한 비밀번호를 입력해주세요.");
-      return;
-    }
-
-    let confirmPin = prompt("새 비밀번호를 한 번 더 입력해주세요:");
-    if (confirmPin !== newPin) {
-      alert("비밀번호가 일치하지 않습니다. 변경이 취소되었습니다.");
+      alert("새 비밀번호를 입력해주세요.");
       return;
     }
 
     secretConfig.pin = newPin.trim();
     await save();
     alert("비밀화원 비밀번호가 성공적으로 변경되었습니다.");
+    document.getElementById("secretPinInput").value = newPin.trim();
+    document.getElementById("secretChangeSection").style.display = "none";
   }
 
   window.changeMonth = function(val) {
@@ -391,9 +421,8 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
             n = getValidPrayerCount(x),
             stage = getTreeStageInfo(x);
 
-        // 비밀화원은 아이콘 없이 항상 제목을 숨김 처리하고 클릭 시마다 비밀번호 검증
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem ? "비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
+        let displayTitle = isSecretItem ? "비밀화원(잠겨 있음)" : esc(x.title);
         let titleStyle = isSecretItem ? "color: #898989; font-style: italic; cursor: pointer;" : "";
         let titleClickAction = isSecretItem ? `onclick="clickSecretTitle('${x.id}')"` : ``;
 
@@ -416,33 +445,27 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 비밀화원 항목 제목을 클릭할 때마다 비밀번호 확인 후 임시 내용 노출 (혹은 카테고리 진입 안내)
+  // 비밀화원 항목 제목 클릭 시 인증 후 내용 표시
   window.clickSecretTitle = function(id) {
-    let pin = prompt("🌿 비밀화원(대나무숲) 비밀번호를 입력하세요:");
-    if (pin === null) return;
-    let currentPin = secretConfig.pin || "7777";
-    if (pin.trim() !== currentPin) {
-      alert("비밀번호가 일치하지 않습니다.");
-      return;
-    }
-    // 비밀번호 맞으면 해당 글의 실제 내용 alert 또는 상세 확인 창으로 보여주기
-    let x = items.find(item => item.id === id);
-    if (x) {
-      alert(`[비밀화원 내용]\n\n${x.title}`);
-    }
+    openSecretModal(() => {
+      let x = items.find(item => item.id === id);
+      if (x) {
+        alert(`[비밀화원 내용]\n\n${x.title}`);
+      }
+    });
   }
 
   window.openForm = function(x = null) {
     if (x && x.category === "비밀화원") {
-      let pin = prompt("🌿 비밀화원 글을 수정하려면 비밀번호를 입력하세요:");
-      if (pin === null) return;
-      let currentPin = secretConfig.pin || "7777";
-      if (pin.trim() !== currentPin) {
-        alert("비밀번호가 틀렸습니다.");
-        return;
-      }
+      openSecretModal(() => {
+        proceedOpenForm(x);
+      });
+      return;
     }
+    proceedOpenForm(x);
+  }
 
+  function proceedOpenForm(x = null) {
     edit = x?.id || null;
     document.getElementById("formTitle").textContent = x ? "기도제목 수정" : "기도제목 추가";
     document.getElementById("title").value = x?.title || "";
@@ -468,15 +491,16 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
         d = document.getElementById("created").value || today();
     
     if (c === "비밀화원" && !edit) {
-      let pin = prompt("🌿 비밀화원에 저장하려면 비밀번호를 입력하세요:");
-      if (pin === null) return;
-      let currentPin = secretConfig.pin || "7777";
-      if (pin.trim() !== currentPin) {
-        alert("비밀번호가 틀렸습니다.");
-        return;
-      }
+      openSecretModal(async () => {
+        await executeSavePrayer(t, c, d);
+      });
+      return;
     }
 
+    await executeSavePrayer(t, c, d);
+  }
+
+  async function executeSavePrayer(t, c, d) {
     if (edit) {
       let x = items.find(x => x.id === edit);
       Object.assign(x, { title: t, category: c, createdAt: d });
@@ -582,7 +606,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     if (listEl) {
       listEl.innerHTML = items.filter(x => x.responded).map(x => {
         let isSecretItem = (x.category === "비밀화원");
-        let displayTitle = isSecretItem ? "비밀화원 대나무숲 (잠겨 있음)" : esc(x.title);
+        let displayTitle = isSecretItem ? "비밀화원(잠겨 있음)" : esc(x.title);
         let displayThanks = isSecretItem ? "비밀화원 내용입니다." : esc(x.thanks || "감사 기록 없음");
 
         return `
@@ -610,15 +634,16 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   window.openThanksModal = function(id) {
     let x = items.find(item => item.id === id);
     if (x && x.category === "비밀화원") {
-      let pin = prompt("🌿 비밀화원 감사 기록을 보려면 비밀번호를 입력하세요:");
-      if (pin === null) return;
-      let currentPin = secretConfig.pin || "7777";
-      if (pin.trim() !== currentPin) {
-        alert("비밀번호가 틀렸습니다.");
-        return;
-      }
+      openSecretModal(() => {
+        proceedOpenThanksModal(id);
+      });
+      return;
     }
+    proceedOpenThanksModal(id);
+  }
 
+  function proceedOpenThanksModal(id) {
+    let x = items.find(item => item.id === id);
     thanksEditId = id;
     document.getElementById("thanksText").value = x?.thanks || "";
     document.getElementById("thanksModal").style.display = "flex";
@@ -696,10 +721,7 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     <div>
       <h1>나의 기도동산 🌲</h1>
       <div id="today" class="muted"></div>
-      <div style="display:flex; gap:6px; margin-top:10px;">
-        <button class="btn" style="font-size:11px; padding:4px 8px;" onclick="logout()">로그아웃</button>
-        <button class="btn" style="font-size:11px; padding:4px 8px;" onclick="changeSecretPin()">비밀번호 변경</button>
-      </div>
+      <button class="btn" style="margin-top:10px; font-size:11px; padding:4px 10px;" onclick="logout()">로그아웃</button>
     </div>
     <div class="calendar-container">
       <div class="cal-header">
@@ -719,6 +741,33 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
   <div class="floating-scroll-btns">
     <button class="float-btn" onclick="scrollToTop()" title="맨 위로">TOP</button>
     <button class="float-btn" onclick="scrollToBottom()" title="맨 아래로">BOT</button>
+  </div>
+</div>
+
+<!-- 비밀화원 인증 및 비밀번호 변경 모달 팝업 -->
+<div id="secretModal" class="modal">
+  <div class="box">
+    <h2 style="color:#4B6E48; margin-top:0;">🌿 비밀화원 보안 인증</h2>
+    <label>비밀번호</label>
+    <input id="secretPinInput" type="password" placeholder="비밀번호를 입력하세요">
+    
+    <div style="margin-top:15px; text-align:right;">
+      <a href="javascript:void(0)" onclick="toggleSecretChangeForm()" style="font-size:12px; color:#4B6E48; text-decoration:underline;">비밀번호 변경하기</a>
+    </div>
+
+    <!-- 비밀번호 변경 접이식 섹션 -->
+    <div id="secretChangeSection" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #E5E3E2;">
+      <label>기존 비밀번호</label>
+      <input id="oldPinInput" type="password" placeholder="기존 비밀번호 입력">
+      <label style="margin-top:8px;">새 비밀번호</label>
+      <input id="newPinInput" type="password" placeholder="새 비밀번호 입력">
+      <button class="btn" style="width:100%; margin-top:10px; background:#E5E3E2;" onclick="executeSecretChange()">비밀번호 변경 저장</button>
+    </div>
+
+    <div class="bar" style="justify-content: flex-end; margin-top: 20px;">
+      <button class="btn" onclick="closeSecretModal()">취소</button>
+      <button class="btn primary" onclick="verifySecretPin()">확인</button>
+    </div>
   </div>
 </div>
 
