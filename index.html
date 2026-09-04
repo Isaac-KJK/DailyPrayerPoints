@@ -280,9 +280,8 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
       return;
     }
     
-    // 콜백을 먼저 백업하고 모달만 닫은 뒤 실행
     let actionToRun = pendingSecretAction;
-    closeSecretModal(false); // 콜백을 초기화하지 않고 모달만 닫음
+    closeSecretModal(false);
     pendingSecretAction = null;
 
     if (actionToRun) {
@@ -454,14 +453,28 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     }
   }
 
-  // 비밀화원 항목 제목 클릭 시 인증 후 내용 표시
+  // 비밀화원 항목 제목 클릭 시 인증 후 전용 내용 모달 오픈
   window.clickSecretTitle = function(id) {
     openSecretModal(() => {
       let x = items.find(item => item.id === id);
       if (x) {
-        alert(`[비밀화원 내용]\n\n${x.title}`);
+        openSecretDetailModal(x);
       }
     });
+  }
+
+  window.openSecretDetailModal = function(x) {
+    document.getElementById("secretDetailTitle").textContent = `${x.category} (작성: ${fmt(x.createdAt)})`;
+    document.getElementById("secretDetailBody").textContent = x.title;
+    document.getElementById("secretDetailEditBtn").onclick = function() {
+      closeSecretDetailModal();
+      editPrayer(x.id);
+    };
+    document.getElementById("secretDetailModal").style.display = "flex";
+  }
+
+  window.closeSecretDetailModal = function() {
+    document.getElementById("secretDetailModal").style.display = "none";
   }
 
   window.openForm = function(x = null) {
@@ -780,6 +793,18 @@ textarea{width:100%;padding:10px;border:1px solid #D5D1CE;border-radius:8px;font
     <div class="bar" style="justify-content: flex-end; margin-top: 20px;">
       <button class="btn" onclick="closeSecretModal()">취소</button>
       <button class="btn primary" onclick="verifySecretPin()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 비밀화원 내용 전용 조회 모달 팝업 -->
+<div id="secretDetailModal" class="modal">
+  <div class="box">
+    <h2 id="secretDetailTitle" style="color:#4B6E48; margin-top:0; font-size:18px;">비밀화원 내용</h2>
+    <div id="secretDetailBody" style="margin:16px 0; padding:12px; background:#F9F8F7; border:1px solid #E5E3E2; border-radius:8px; font-size:15px; color:#333; white-space:pre-wrap; word-break:break-all; line-height:1.5;"></div>
+    <div class="bar" style="justify-content: space-between; margin-top: 20px;">
+      <button id="secretDetailEditBtn" class="btn" style="background:#F2F0EF; border-color:#D5D1CE; color:#4B6E48;">수정하기</button>
+      <button class="btn primary" onclick="closeSecretDetailModal()">닫기</button>
     </div>
   </div>
 </div>
